@@ -5,352 +5,677 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pulsar Music | Дистрибуция</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+
     <style>
         :root { 
-            --bg: #121212; 
-            --card: #1e1e1e; 
-            --accent: #a855f7; 
-            --accent-gradient: linear-gradient(90deg, #a855f7, #ec4899);
-            --text: #fff; 
-            --muted: #aaa; 
-            --input: #2d2d2d; 
+            --bg: #050505; --card: #0a0a0a; --accent: #a855f7; --accent-pink: #ec4899;
+            --text: #fff; --muted: #888; --input-bg: #111; --border: #333; --error: #f44336;
+            --color-red: #ff3b30; --color-yellow: #ffcc00; --color-green: #34c759;
         }
         body { 
-            background: var(--bg); 
-            color: var(--text); 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-        .app-container { 
-            width: 100%; 
-            max-width: 400px; 
-            background: var(--card); 
-            padding: 30px 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-            display: flex;
-            flex-direction: column;
-            min-height: 500px;
+            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; box-sizing: border-box; -webkit-user-select: none; user-select: none; 
         }
 
-        /* Экраны */
-        .screen { display: none; flex-direction: column; justify-content: center; flex-grow: 1; }
+        @keyframes neonPulse {
+            0% { border-color: rgba(168, 85, 247, 0.2); box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
+            50% { border-color: rgba(168, 85, 247, 1); box-shadow: 0 0 30px rgba(168, 85, 247, 0.5); }
+            100% { border-color: rgba(168, 85, 247, 0.2); box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
+        }
+        @keyframes neonPulseGreen {
+            0% { border-color: rgba(52, 199, 89, 0.2); box-shadow: 0 0 15px rgba(52, 199, 89, 0.1); }
+            50% { border-color: rgba(52, 199, 89, 1); box-shadow: 0 0 30px rgba(52, 199, 89, 0.5); }
+            100% { border-color: rgba(52, 199, 89, 0.2); box-shadow: 0 0 15px rgba(52, 199, 89, 0.1); }
+        }
+
+        @keyframes shine { to { background-position: 200% center; } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+
+        #bgEffect { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; }
+        .effect-red { background: radial-gradient(circle, rgba(255, 59, 48, 0.4) 0%, transparent 70%); animation: flashRed 1.5s ease-out forwards; }
+        @keyframes flashRed { 0% { transform: scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+        .effect-yellow { background: radial-gradient(ellipse at bottom, rgba(255, 204, 0, 0.3) 0%, transparent 80%); animation: waveYellow 2s ease-in-out forwards; }
+        @keyframes waveYellow { 0% { transform: scaleY(0.1) translateY(100%); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: scaleY(1.5) translateY(-20%); opacity: 0; } }
+        .effect-green { background: radial-gradient(circle at center, rgba(52, 199, 89, 0.3) 0%, transparent 80%); animation: bloomGreen 2.5s ease-out forwards; }
+        @keyframes bloomGreen { 0% { transform: scale(0.8); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+
+        @keyframes successPulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 199, 89, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
+        }
+
+        .app-container { 
+            width: 100%; max-width: 400px; 
+            height: min(650px, 100dvh);
+            background: var(--card); padding: 25px 20px; border-radius: 20px; 
+            border: 2px solid rgba(168, 85, 247, 0.3); animation: neonPulse 3s infinite ease-in-out; 
+            display: flex; flex-direction: column; box-sizing: border-box; position: relative; overflow: hidden; z-index: 1;
+            transition: border-color 0.5s, box-shadow 0.5s;
+        }
+
+        /* Зелёная пульсация шага 1 */
+        .app-container.step1-complete {
+            animation: neonPulseGreen 3s infinite ease-in-out;
+        }
+        /* Зелёная пульсация шага 2 */
+        .app-container.step2-complete {
+            animation: neonPulseGreen 3s infinite ease-in-out;
+        }
+        
+        .bg-element { position: absolute; z-index: 0; pointer-events: none; }
+        .stars-top { top: 0; left: 0; width: 100%; height: 100%; opacity: 0.7; z-index: 0;}
+
+        .progress-bar { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; z-index: 2; flex-shrink: 0; }
+        .step-dot { 
+            width: 32px; height: 32px; border-radius: 50%; background: #222; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 14px; font-weight: bold; color: #555; transition: 0.3s; 
+            border: 1px solid var(--border); cursor: pointer;
+        }
+        .step-dot:hover { background: #333; color: #ccc; }
+        .step-dot.active { background: transparent; color: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+        
+        .step-dot.complete { color: var(--color-green); border-color: var(--color-green); box-shadow: 0 0 10px rgba(52, 199, 89, 0.4); }
+        .step-dot.complete.active { box-shadow: 0 0 15px rgba(52, 199, 89, 0.6); }
+
+        .screen { display: none; flex-direction: column; flex-grow: 1; position: relative; z-index: 2; min-height: 0; }
         .screen.active { display: flex; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Экран 1: Вступление */
+        .screen-splash { justify-content: space-between; text-align: center; }
+        .mountains-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; z-index: -1;}
+        .splash-center { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        
         .splash-title {
-            font-size: 42px;
-            font-weight: 900;
-            text-align: center;
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 15px;
-            line-height: 1.1;
+            font-size: 46px; font-weight: 900; 
+            background: linear-gradient(90deg, #ffffff 0%, #ff3b30 25%, #ffcc00 50%, #ff3b30 75%, #ffffff 100%);
+            background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite; margin-bottom: 15px; line-height: 1.1; letter-spacing: 2px;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 20px rgba(255, 59, 48, 0.3));
         }
-        .splash-subtitle {
-            text-align: center;
-            color: var(--muted);
-            font-size: 16px;
-            line-height: 1.5;
-            margin-bottom: 40px;
+        .splash-subtitle { color: var(--muted); font-size: 15px; line-height: 1.5; padding: 0 10px; max-width: 300px; text-shadow: 0 0 10px rgba(0,0,0,0.8); }
+
+        .btn-click {
+            position: relative; width: 100%; padding: 16px 0; border-radius: 12px; border: 2px solid var(--accent); 
+            background: rgba(10, 10, 10, 0.6); color: var(--accent); font-size: 16px; font-weight: bold; 
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px; backdrop-filter: blur(5px); 
+            outline: none; -webkit-tap-highlight-color: transparent; transition: all 0.2s ease; z-index: 2;
         }
+        .btn-click:active { background: var(--accent-pink); color: #fff; border-color: var(--accent-pink); box-shadow: 0 0 30px var(--accent-pink), 0 0 60px var(--accent); transform: scale(0.98); }
 
-        /* Формы и заголовки */
-        .step-header { text-align: center; margin-bottom: 25px; }
-        h2 { font-size: 24px; margin: 0 0 5px 0; color: var(--accent); }
-        .step-subtitle { font-size: 14px; color: var(--muted); margin: 0; }
-
-        .form-group { margin-bottom: 18px; text-align: center; }
+        .fields-container { 
+            flex-grow: 1; display: flex; flex-direction: column; justify-content: space-evenly; 
+            padding: 10px 0; 
+            overflow-y: auto; min-height: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .form-group { text-align: center; position: relative; }
         label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
         
-        input[type="text"], input[type="email"], input[type="url"], input[type="date"] {
-            width: 100%; 
-            box-sizing: border-box; 
-            background: var(--input); 
-            border: 2px solid #444; 
-            color: white; 
-            padding: 14px; 
-            border-radius: 12px; 
-            outline: none; 
-            font-size: 16px;
-            text-align: center;
-            transition: border-color 0.3s, background-color 0.3s;
+        input[type="text"], input[type="email"], input[type="url"] {
+            width: 100%; box-sizing: border-box; background: var(--input-bg); border: 1px solid var(--border); 
+            color: white; padding: 16px 12px; border-radius: 10px; outline: none; font-size: 16px; text-align: center; 
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        input:focus { border-color: var(--accent); }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); }
+
+        input[readonly] { cursor: pointer; }
         
-        /* Календарь-светофор */
-        .date-red { border-color: #f44336 !important; background: rgba(244, 67, 54, 0.1) !important; }
-        .date-yellow { border-color: #ffeb3b !important; background: rgba(255, 235, 59, 0.1) !important; }
-        .date-green { border-color: #4caf50 !important; background: rgba(76, 175, 80, 0.1) !important; }
+        .input-error { border-color: var(--error) !important; box-shadow: 0 0 10px rgba(244, 67, 54, 0.3) !important; }
+        .input-success { border-color: var(--color-green) !important; animation: successPulse 0.8s ease-out; box-shadow: 0 0 10px rgba(52, 199, 89, 0.3) !important; }
 
-        .info-link {
-            display: inline-block;
-            margin-top: 5px;
-            font-size: 12px;
-            color: var(--accent);
-            text-decoration: underline;
-            cursor: pointer;
+        input.date-red { border-color: var(--color-red) !important; color: var(--color-red) !important; }
+        input.date-yellow { border-color: var(--color-yellow) !important; color: var(--color-yellow) !important; }
+        input.date-green { border-color: var(--color-green) !important; color: var(--color-green) !important; }
+
+        .info-link { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--accent); text-decoration: underline; cursor: pointer; transition: color 0.5s; }
+        
+        .app-container.step1-complete .info-link { color: var(--color-green); }
+
+        .checkbox-group { background: #0a0a0a; padding: 15px; border-radius: 10px; text-align: left; border: 1px solid var(--border); margin-top: 10px; transition: 0.3s;}
+        .checkbox-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 13px; line-height: 1.4; color: #bbb; }
+        /* ЗЕЛЁНЫЕ ГАЛОЧКИ */
+        .checkbox-item input { margin-top: 2px; accent-color: var(--color-green); width: 20px; height: 20px; flex-shrink: 0;}
+        .checkbox-item a { color: var(--accent); text-decoration: underline; cursor: pointer; transition: color 0.5s; }
+
+        /* Рамка чекбоксов зелёная, когда все отмечены */
+        #checkboxes.all-checked {
+            border-color: var(--color-green);
+            box-shadow: 0 0 10px rgba(52, 199, 89, 0.3);
         }
 
-        /* Чекбоксы */
-        .checkbox-group { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left;}
-        .checkbox-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 13px; line-height: 1.4; color: #ddd; }
-        .checkbox-item input { margin-top: 3px; accent-color: var(--accent); width: 20px; height: 20px; }
-
-        /* Кнопки */
-        .btn-row { display: flex; gap: 10px; margin-top: 20px; }
-        button { 
-            flex: 1; 
-            padding: 16px; 
-            border-radius: 12px; 
-            border: none; 
-            font-weight: bold; 
-            font-size: 16px; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            width: 100%;
+        /* Ссылка в чекбоксе зеленеет, когда шаг 2 завершён */
+        .app-container.step2-complete .checkbox-item a {
+            color: var(--color-green);
         }
-        .btn-main { background: var(--accent-gradient); color: white; }
-        .btn-prev { background: #333; color: white; flex: 0.4; }
-        button:active { transform: scale(0.97); }
 
-        /* Модальное окно */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+        .btn-row { display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; flex-shrink: 0; }
+        button.btn-nav { padding: 16px 0; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; text-transform: uppercase; flex: 1; }
+        .btn-main { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
+        .btn-main:active { background: var(--accent); color: #fff; box-shadow: 0 0 15px var(--accent); }
+        .btn-prev { background: transparent; color: #666; border: 1px solid var(--border); flex: 0.4; }
+        .btn-prev:active { background: #333; color: #fff; }
+
+        /* Кнопка "Далее" шага 1 зеленеет */
+        .app-container.step1-complete #step1-nav .btn-main { color: var(--color-green); border-color: var(--color-green); }
+        .app-container.step1-complete #step1-nav .btn-main:active { background: var(--color-green); color: #fff; box-shadow: 0 0 15px var(--color-green); }
+
+        /* Кнопка "Отправить" шага 2 зеленеет */
+        .app-container.step2-complete #step2-nav .btn-main { color: var(--color-green); border-color: var(--color-green); }
+        .app-container.step2-complete #step2-nav .btn-main:active { background: var(--color-green); color: #fff; box-shadow: 0 0 15px var(--color-green); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 999; justify-content: center; align-items: center; padding: 20px; }
         .modal.active { display: flex; animation: fadeIn 0.3s; }
-        .modal-content {
-            background: var(--card);
-            padding: 25px;
-            border-radius: 16px;
-            max-width: 350px;
-            border: 1px solid var(--accent);
+        .modal-content { background: var(--card); padding: 20px; border-radius: 16px; max-width: 350px; width: 100%; border: 1px solid var(--accent); box-shadow: 0 0 30px rgba(168, 85, 247, 0.2); display: flex; flex-direction: column; max-height: 80vh; }
+        .modal-content h3 { color: var(--accent); margin-top: 0; font-size: 18px; }
+        .modal-body { font-size: 13px; line-height: 1.5; color: #bbb; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;}
+        .modal-body p { margin-top: 0; }
+        .modal-body ul { padding-left: 15px; }
+        .modal-body li { margin-bottom: 6px; }
+        .modal-close { background: transparent; color: var(--accent); border: 2px solid var(--accent); padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; flex-shrink: 0; transition: 0.3s;}
+        .modal-close:active { background: var(--accent); color: white;}
+
+        .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background: var(--card); color: white; padding: 12px 24px; border-radius: 30px; border: 1px solid var(--accent); box-shadow: 0 5px 20px rgba(168, 85, 247, 0.4); font-size: 14px; font-weight: bold; z-index: 1000; transition: bottom 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); display: flex; align-items: center; gap: 8px; width: max-content; max-width: 90%; }
+        .toast.show { bottom: 30px; }
+        .toast.error { border-color: var(--error); box-shadow: 0 5px 20px rgba(244, 67, 54, 0.4); }
+
+        .flatpickr-calendar { background: #111 !important; border: 1px solid var(--border) !important; border-radius: 16px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important; font-family: inherit !important; }
+        .flatpickr-months .flatpickr-month { color: var(--text) !important; fill: var(--text) !important; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: bold !important; }
+        .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { fill: var(--accent) !important; color: var(--accent) !important; transition: 0.2s; }
+        .flatpickr-months .flatpickr-prev-month:hover, .flatpickr-months .flatpickr-next-month:hover { fill: var(--accent-pink) !important; color: var(--accent-pink) !important; }
+        .flatpickr-weekdays { background: transparent !important; }
+        span.flatpickr-weekday { color: var(--muted) !important; font-weight: normal !important; }
+        .flatpickr-day { color: #eee !important; border-radius: 8px !important; border: 1px solid transparent !important; transition: all 0.2s; }
+        .flatpickr-day:hover { background: #222 !important; }
+        .flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5) !important; font-weight: bold !important; }
+        .flatpickr-day.flatpickr-disabled { color: #444 !important; text-decoration: line-through; }
+        .flatpickr-day.date-red { color: var(--color-red) !important; background: rgba(255, 59, 48, 0.1) !important; font-weight: bold;}
+        .flatpickr-day.date-yellow { color: var(--color-yellow) !important; background: rgba(255, 204, 0, 0.1) !important; font-weight: bold;}
+        .flatpickr-day.date-green { color: var(--color-green) !important; background: rgba(52, 199, 89, 0.1) !important; font-weight: bold;}
+        .flatpickr-day.selected.date-red, .flatpickr-day.selected.date-yellow, .flatpickr-day.selected.date-green { background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important; }
+        
+        .legend { display: flex; justify-content: center; gap: 12px; font-size: 11px; margin-top: 8px; color: var(--muted);}
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .dot-red { background: var(--color-red); box-shadow: 0 0 5px var(--color-red); }
+        .dot-yellow { background: var(--color-yellow); box-shadow: 0 0 5px var(--color-yellow); }
+        .dot-green { background: var(--color-green); box-shadow: 0 0 5px var(--color-green); }
+
+        /* ===== ФИКС БЕЛОГО ФОНА ПРИ АВТОЗАПОЛНЕНИИ ===== */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+            -webkit-text-fill-color: var(--text) !important;
+            transition: background-color 5000s ease-in-out 0s;
+            font-family: inherit !important;
         }
-        .modal-content h3 { color: var(--accent); margin-top: 0; }
-        .modal-content p { font-size: 14px; line-height: 1.5; color: #ddd; }
-        .modal-close { margin-top: 15px; background: var(--accent); color: white; padding: 10px; border-radius: 8px; border: none; width: 100%; font-weight: bold;}
+        input:-webkit-autofill.input-error {
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset, 0 0 10px rgba(244, 67, 54, 0.3) !important;
+            border-color: var(--error) !important;
+        }
+        input:-webkit-autofill.input-success {
+            -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset, 0 0 10px rgba(52, 199, 89, 0.3) !important;
+            border-color: var(--color-green) !important;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Модальное окно с объяснением -->
+    <div class="toast" id="toastMsg"></div>
+
     <div class="modal" id="infoModal">
         <div class="modal-content">
             <h3>Почему релиз нужно планировать заранее?</h3>
-            <p>Площадки (Яндекс Музыка, VK Музыка и др.) — это огромные платформы с ручной модерацией.</p>
-            <p>Когда мы отправляем трек заранее, у редакторов есть время прослушать его и <b>добавить в плейлисты</b>. Питчинг работает только при условии заблаговременной загрузки!</p>
-            <p>Если выбрать дату слишком близко (менее 30 дней), площадки не успеют рассмотреть песню, и вы потеряете шанс на бесплатное продвижение.</p>
-            <button class="modal-close" onclick="closeModal()">Понятно</button>
+            <div class="modal-body">
+                <p>Площадки (Яндекс Музыка, VK Музыка и др.) — это огромные платформы с ручной модерацией.</p>
+                <p>Когда мы отправляем трек заранее, у редакторов есть время прослушать его и <b>добавить в плейлисты</b>. Питчинг работает только при условии заблаговременной загрузки!</p>
+                <p>Если выбрать дату слишком близко (менее 21 дня), площадки не успеют рассмотреть песню, и вы потеряете шанс на бесплатное продвижение.</p>
+            </div>
+            <button class="modal-close" onclick="closeModal('infoModal')">Понятно</button>
+        </div>
+    </div>
+    <div class="modal" id="termsModal">
+        <div class="modal-content">
+            <h3>Условия дистрибуции</h3>
+            <div class="modal-body">
+                <p><b>Мы занимаемся дистрибуцией уже 5 лет.</b> Оплату принимаем только за саму загрузку (1500 ₽).</p>
+                <p><b>Важно:</b></p>
+                <ul>
+                    <li>Оплата всей нашей работы составляет <b>1500 ₽</b> единожды, и <b>15%</b> от будущих квартальных роялти.</li>
+                    <li>Выгрузка происходит через лейбл <b>Pulsar Music</b>.</li>
+                    <li>Артист не может удалять релизы в течение <b>2 лет</b> после загрузки.</li>
+                </ul>
+                <p><b>Лейбл готов обеспечить вам:</b></p>
+                <ul>
+                    <li>Гарантированный релиз в назначенную дату</li>
+                    <li>Доставка музыки на 50 площадок и более</li>
+                    <li>Загрузка и монетизация клипов, анимация обложки</li>
+                    <li>Статистика прослушиваний (ВК и Яндекс)</li>
+                    <li>Личная страничка на Bandlink</li>
+                    <li>Привязка сообщества к профилю артиста</li>
+                    <li>Установка фото профиля в ВК и Яндексе</li>
+                    <li>Промо-запросы в плейлисты (ВК, Яндекс, Звук).</li>
+                    <li>Артисту ежеквартально передаётся <b>85% роялти</b>.</li>
+                </ul>
+            </div>
+            <button class="modal-close" onclick="closeModal('termsModal')">Я согласен</button>
         </div>
     </div>
 
-    <div class="app-container">
-        
-        <!-- ЭКРАН 1: ВСТУПЛЕНИЕ -->
-        <div class="screen active" id="screen-splash">
-            <div class="splash-title">PULSAR<br>MUSIC</div>
-            <div class="splash-subtitle">
-                Загрузи свой трек на ВК, Яндекс Музыку, Apple Music и еще 50 площадок за пару минут.
-            </div>
-            <button class="btn-main" onclick="goToStep(1)">НАЧАТЬ ЗАГРУЗКУ</button>
+    <div class="app-container" id="appContainer">
+        <div id="bgEffect"></div>
+
+        <svg class="bg-element stars-top" viewBox="0 0 400 650" preserveAspectRatio="none">
+            <circle cx="30" cy="40" r="1.5" fill="#fff" opacity="0.8" style="filter: drop-shadow(0 0 3px #fff);"/>
+            <circle cx="120" cy="20" r="1" fill="#a855f7" opacity="0.9" style="filter: drop-shadow(0 0 4px #a855f7);"/>
+            <circle cx="200" cy="60" r="2" fill="#ec4899" opacity="0.7" style="filter: drop-shadow(0 0 5px #ec4899);"/>
+            <circle cx="280" cy="30" r="1" fill="#fff" opacity="0.6"/>
+            <circle cx="350" cy="70" r="1.5" fill="#a855f7" opacity="0.8" style="filter: drop-shadow(0 0 3px #a855f7);"/>
+            <circle cx="80" cy="200" r="1" fill="#fff" opacity="0.4"/>
+            <circle cx="320" cy="250" r="1.5" fill="#ec4899" opacity="0.5"/>
+            <circle cx="160" cy="300" r="1" fill="#fff" opacity="0.5"/>
+            <circle cx="60" cy="400" r="2" fill="#a855f7" opacity="0.3" style="filter: blur(1px);"/>
+            <circle cx="250" cy="450" r="1" fill="#fff" opacity="0.7"/>
+            <circle cx="380" cy="520" r="1.5" fill="#fff" opacity="0.4"/>
+            <circle cx="50" cy="580" r="1" fill="#a855f7" opacity="0.6"/>
+            <circle cx="300" cy="620" r="1.5" fill="#ec4899" opacity="0.5"/>
+        </svg>
+
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="step-dot active" id="dot1" onclick="attemptStepChange(1)">1</div>
+            <div class="step-dot" id="dot2" onclick="attemptStepChange(2)">2</div>
         </div>
 
-        <!-- ЭКРАН 2: ШАГ 1 -->
-        <div class="screen" id="screen-step1">
-            <div class="step-header">
-                <h2>Шаг 1</h2>
-                <p class="step-subtitle">О треке</p>
+        <div class="screen screen-splash active" id="screen-splash">
+            <svg class="mountains-bg" viewBox="0 0 400 300" preserveAspectRatio="none">
+                <defs>
+                    <filter id="glow-pink" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                    <filter id="glow-purple" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge><feMergeNode in="blur" /><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                </defs>
+                <path id="path-purple" d="M0 300 L50 150 L100 200 L150 100 L220 250 L280 120 L350 220 L400 150" fill="none" stroke="#a855f7" stroke-width="1.5" opacity="0.3"/>
+                <path id="path-pink" d="M0 300 L80 200 L140 250 L200 150 L260 280 L330 180 L400 260" fill="none" stroke="#ec4899" stroke-width="2" opacity="0.6" style="filter: drop-shadow(0 0 5px #ec4899);"/>
+                
+                <circle r="4" fill="#ec4899" filter="url(#glow-pink)">
+                    <animateMotion dur="6s" repeatCount="indefinite" begin="0s"><mpath href="#path-pink"/></animateMotion>
+                    <animate attributeName="r" values="2;6;2" dur="1.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/>
+                </circle>
+                <circle r="3" fill="#a855f7" filter="url(#glow-purple)">
+                    <animateMotion dur="6s" repeatCount="indefinite" begin="3s"><mpath href="#path-purple"/></animateMotion>
+                    <animate attributeName="r" values="1.5;4;1.5" dur="1.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.5;0.9;0.5" dur="1.5s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+
+            <div class="splash-center">
+                <div class="splash-title">PULSAR<br>MUSIC</div>
+                <div class="splash-subtitle">Загрузи свой трек на ВК, Яндекс Музыку, Apple Music и еще 50 площадок за пару минут.</div>
             </div>
             
-            <div class="form-group">
-                <label>Имя артиста / Псевдоним</label>
-                <input type="text" id="artist" placeholder="Введите имя">
-            </div>
-            <div class="form-group">
-                <label>Название трека</label>
-                <input type="text" id="track" placeholder="Введите название">
-            </div>
-            <div class="form-group">
-                <label>Ваш Email</label>
-                <input type="email" id="email" placeholder="example@yandex.ru">
-                <div id="emailError" style="color: #f44336; font-size: 12px; margin-top: 5px; display: none;">Неверный формат. Используйте @yandex.ru, @gmail.com, @mail.ru и др.</div>
-            </div>
-            <div class="form-group">
-                <label>Желаемая дата релиза</label>
-                <input type="date" id="date">
-                <a class="info-link" onclick="openModal()">Почему нужна дата минимум через 30 дней?</a>
+            <button class="btn-click" onclick="goToStep(1)">НАЧАТЬ ЗАГРУЗКУ</button>
+        </div>
+
+        <div class="screen" id="screen-step1">
+            <div class="fields-container" id="step1-fields">
+                <div class="form-group">
+                    <label>Имя артиста / Псевдоним</label>
+                    <input type="text" id="artist" placeholder="Введите имя" onblur="validateField(this)">
+                </div>
+                <div class="form-group">
+                    <label>Название трека</label>
+                    <input type="text" id="track" placeholder="Введите название" onblur="validateField(this)">
+                </div>
+                <div class="form-group">
+                    <label>Ваш Email</label>
+                    <input type="email" id="email" placeholder="example@yandex.ru" onblur="validateField(this, 'email')">
+                </div>
+                <div class="form-group">
+                    <label>Желаемая дата релиза</label>
+                    <input type="text" id="datePicker" placeholder="Нажмите, чтобы выбрать" readonly>
+                    <div class="legend">
+                        <div class="legend-item"><span class="dot dot-red"></span> до 17 дн.</div>
+                        <div class="legend-item"><span class="dot dot-yellow"></span> 17-20 дн.</div>
+                        <div class="legend-item"><span class="dot dot-green"></span> 21+ дн.</div>
+                    </div>
+                    <a class="info-link" onclick="openModal('infoModal')">Почему нужна дата минимум через 21 день?</a>
+                </div>
             </div>
 
-            <div class="btn-row">
-                <button class="btn-prev" onclick="goToStep(0)">Назад</button>
-                <button class="btn-main" onclick="validateStep1()">Далее</button>
+            <div class="btn-row" id="step1-nav">
+                <button class="btn-nav btn-prev" onclick="goToStep(0)">Назад</button>
+                <button class="btn-nav btn-main" onclick="attemptStepChange(2)">Далее</button>
             </div>
         </div>
 
-        <!-- ЭКРАН 3: ШАГ 2 -->
         <div class="screen" id="screen-step2">
-            <div class="step-header">
-                <h2>Шаг 2</h2>
-                <p class="step-subtitle">Авторы и Права</p>
+            <div class="fields-container" id="step2-fields">
+                <div class="form-group">
+                    <label>ФИО автора текста (если не вы)</label>
+                    <input type="text" id="authorText" placeholder="Иванов Иван" onblur="validateField(this)">
+                </div>
+                <div class="form-group">
+                    <label>ФИО автора музыки/аранжировки</label>
+                    <input type="text" id="authorMusic" placeholder="Петров Петр" onblur="validateField(this)">
+                </div>
+                <div class="form-group">
+                    <label>Ссылка на соцсети (ВК / YouTube)</label>
+                    <input type="url" id="socials" placeholder="https://vk.com/..." onblur="validateField(this, 'url')">
+                </div>
+
+                <div class="checkbox-group" id="checkboxes">
+                    <div class="checkbox-item"><input type="checkbox" id="rightsText" onchange="validateCheckboxes()"> <span>У меня есть договор с автором текста (или текст мой)</span></div>
+                    <div class="checkbox-item"><input type="checkbox" id="rightsMusic" onchange="validateCheckboxes()"> <span>У меня есть договор с автором музыки (или музыка моя)</span></div>
+                    <div class="checkbox-item"><input type="checkbox" id="agreeDist" onchange="validateCheckboxes()"> <span>Я прочитал и согласен с <a onclick="openModal('termsModal')">условиями лицензионного договора</a></span></div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label>ФИО автора текста (если не вы)</label>
-                <input type="text" id="authorText" placeholder="Иванов Иван">
-            </div>
-            <div class="form-group">
-                <label>ФИО автора музыки/аранжировки</label>
-                <input type="text" id="authorMusic" placeholder="Петров Петр">
-            </div>
-            <div class="form-group">
-                <label>Ссылка на соцсети (ВК / YouTube)</label>
-                <input type="url" id="socials" placeholder="https://vk.com/...">
-            </div>
-
-            <div class="checkbox-group">
-                <div class="checkbox-item"><input type="checkbox" id="rightsText"> <span>У меня есть договор с автором текста (или текст мой)</span></div>
-                <div class="checkbox-item"><input type="checkbox" id="rightsMusic"> <span>У меня есть договор с автором музыки (или музыка моя)</span></div>
-                <div class="checkbox-item"><input type="checkbox" id="agreeDist"> <span>Согласен с условиями: 1500 ₽ разово + 15% роялти, эксклюзив Pulsar Music на 2 года.</span></div>
-            </div>
-
-            <div class="btn-row">
-                <button class="btn-prev" onclick="goToStep(1)">Назад</button>
-                <button class="btn-main" onclick="submitForm()">Отправить</button>
+            <div class="btn-row" id="step2-nav">
+                <button class="btn-nav btn-prev" onclick="goToStep(1)">Назад</button>
+                <button class="btn-nav btn-main" onclick="submitForm()">Отправить</button>
             </div>
         </div>
 
     </div>
 
     <script>
-        // Инициализация Telegram
         let tg = null;
-        if (window.Telegram && window.Telegram.WebApp) {
-            tg = window.Telegram.WebApp;
-            tg.expand();
-        }
-
-        let currentScreen = 0; // 0 - сплэш, 1 - шаг 1, 2 - шаг 2
-
-        // Переключение экранов
-        function goToStep(screenIndex) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            
-            if (screenIndex === 0) document.getElementById('screen-splash').classList.add('active');
-            if (screenIndex === 1) document.getElementById('screen-step1').classList.add('active');
-            if (screenIndex === 2) document.getElementById('screen-step2').classList.add('active');
-            
-            currentScreen = screenIndex;
-            window.scrollTo(0,0); // Скролл вверх при смене экрана
-        }
-
-        // Логика календаря-светофора
-        document.getElementById('date').addEventListener('change', function() {
-            const dateInput = this;
-            const selectedDate = new Date(this.value);
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            
-            // Сброс классов
-            dateInput.classList.remove('date-red', 'date-yellow', 'date-green');
-            
-            if (isNaN(selectedDate.getTime())) return;
-
-            const diffTime = selectedDate - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays < 0) {
-                alert("Дата не может быть в прошлом!");
-                this.value = "";
-            } else if (diffDays <= 15) {
-                dateInput.classList.add('date-red');
-            } else if (diffDays <= 30) {
-                dateInput.classList.add('date-yellow');
-            } else {
-                dateInput.classList.add('date-green');
+        if (window.Telegram && window.Telegram.WebApp) { 
+            tg = window.Telegram.WebApp; 
+            tg.ready(); 
+            tg.expand(); 
+            if (typeof tg.setHeaderColor === 'function') {
+                tg.setHeaderColor('#050505');
             }
-        });
+        }
 
-        // Валидация Email
+        let selectedDateString = "";
+        let selectedDateISO = "";
+        let dateStatus = "";
+        let currentStep = 0;
+        const progressBar = document.getElementById('progressBar');
+        const bgEffect = document.getElementById('bgEffect');
+        const appContainer = document.getElementById('appContainer');
+        const dot1 = document.getElementById('dot1');
+        const dot2 = document.getElementById('dot2');
+
+        function formatISO(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
         function isValidEmail(email) {
-            // Регулярное выражение для проверки популярных доменов
             const regex = /^[a-zA-Z0-9._-]+@(yandex\.ru|gmail\.com|mail\.ru|bk\.ru|inbox\.ru|list\.ru|icloud\.com|ya\.ru)$/i;
             return regex.test(email);
         }
 
-        // Валидация Шага 1
-        function validateStep1() {
-            const artist = document.getElementById('artist').value.trim();
-            const track = document.getElementById('track').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const date = document.getElementById('date').value;
-            const emailError = document.getElementById('emailError');
-
-            if (!artist || !track || !email || !date) {
-                alert("Пожалуйста, заполните все поля и выберите дату.");
-                return;
-            }
-
-            if (!isValidEmail(email)) {
-                emailError.style.display = 'block';
-                document.getElementById('email').focus();
-                return;
-            } else {
-                emailError.style.display = 'none';
-            }
-
-            goToStep(2);
+        function isValidUrl(val) {
+            return val.startsWith('http://') || val.startsWith('https://') || val.includes('.');
         }
 
-        // Модальное окно
-        function openModal() { document.getElementById('infoModal').classList.add('active'); }
-        function closeModal() { document.getElementById('infoModal').classList.remove('active'); }
+        // ===== ШАГ 1: ЗАВЕРШЕНИЕ =====
+        function updateStep1Completion() {
+            const artist = document.getElementById('artist');
+            const track = document.getElementById('track');
+            const email = document.getElementById('email');
 
-        // Отправка формы
+            const isComplete = 
+                artist.value.trim() !== '' &&
+                track.value.trim() !== '' &&
+                isValidEmail(email.value.trim()) &&
+                dateStatus === 'green';
+
+            if (isComplete) {
+                dot1.classList.add('complete');
+                if (currentStep === 1) {
+                    appContainer.classList.add('step1-complete');
+                }
+            } else {
+                dot1.classList.remove('complete');
+                appContainer.classList.remove('step1-complete');
+            }
+        }
+
+        // ===== ШАГ 2: ЗАВЕРШЕНИЕ =====
+        function updateStep2Completion() {
+            const authorText  = document.getElementById('authorText');
+            const authorMusic = document.getElementById('authorMusic');
+            const socials     = document.getElementById('socials');
+            const r1 = document.getElementById('rightsText').checked;
+            const r2 = document.getElementById('rightsMusic').checked;
+            const r3 = document.getElementById('agreeDist').checked;
+
+            const isComplete =
+                authorText.value.trim()  !== '' &&
+                authorMusic.value.trim() !== '' &&
+                isValidUrl(socials.value.trim()) &&
+                r1 && r2 && r3;
+
+            if (isComplete) {
+                dot2.classList.add('complete');
+                if (currentStep === 2) {
+                    appContainer.classList.add('step2-complete');
+                }
+            } else {
+                dot2.classList.remove('complete');
+                appContainer.classList.remove('step2-complete');
+            }
+
+            const group = document.getElementById('checkboxes');
+            if (r1 && r2 && r3) {
+                group.classList.add('all-checked');
+            } else {
+                group.classList.remove('all-checked');
+            }
+        }
+
+        function validateField(el, type = 'text') {
+            const val = el.value.trim();
+            el.classList.remove('input-error', 'input-success');
+
+            if (val === '') { updateStep1Completion(); updateStep2Completion(); return; }
+
+            let isValid = false;
+
+            if (type === 'email') {
+                isValid = isValidEmail(val);
+            } else if (type === 'url') {
+                isValid = isValidUrl(val);
+            } else {
+                isValid = val.length > 0;
+            }
+
+            if (isValid) {
+                void el.offsetWidth; 
+                el.classList.add('input-success');
+            } else {
+                el.classList.add('input-error');
+            }
+
+            updateStep1Completion();
+            updateStep2Completion();
+        }
+
+        function validateCheckboxes() {
+            updateStep2Completion();
+        }
+
+        // ===== КАЛЕНДАРЬ =====
+        flatpickr.localize(flatpickr.l10ns.ru);
+        flatpickr("#datePicker", {
+            minDate: "today", 
+            dateFormat: "d.m.Y", 
+            disableMobile: true,
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const dayDate = new Date(dayElem.dateObj); dayDate.setHours(0,0,0,0);
+                const diffDays = Math.ceil((dayDate - today) / (1000 * 60 * 60 * 24));
+
+                if (diffDays >= 0 && diffDays < 17) dayElem.classList.add("date-red");
+                else if (diffDays >= 17 && diffDays < 21) dayElem.classList.add("date-yellow");
+                else if (diffDays >= 21) dayElem.classList.add("date-green");
+            },
+            onChange: function(selectedDates, dateStr) {
+                selectedDateString = dateStr;
+                selectedDateISO = selectedDates[0] ? formatISO(selectedDates[0]) : "";
+                const input = document.getElementById('datePicker');
+                const today = new Date(); today.setHours(0,0,0,0);
+                const diffDays = Math.ceil((selectedDates[0] - today) / (1000 * 60 * 60 * 24));
+                
+                input.classList.remove('date-red', 'date-yellow', 'date-green', 'input-error');
+                bgEffect.className = ''; 
+                void bgEffect.offsetWidth; 
+
+                if (diffDays < 17) {
+                    input.classList.add('date-red');
+                    bgEffect.classList.add('effect-red');
+                    dateStatus = 'red';
+                } else if (diffDays >= 17 && diffDays < 21) {
+                    input.classList.add('date-yellow');
+                    bgEffect.classList.add('effect-yellow');
+                    dateStatus = 'yellow';
+                } else {
+                    input.classList.add('date-green');
+                    bgEffect.classList.add('effect-green');
+                    dateStatus = 'green';
+                }
+
+                updateStep1Completion();
+            }
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toastMsg');
+            toast.innerText = message;
+            toast.classList.add('show', 'error');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function shakeElement(el) {
+            el.classList.add('shake');
+            setTimeout(() => el.classList.remove('shake'), 400);
+        }
+
+        function attemptStepChange(targetStep) {
+            if (currentStep === 1 && targetStep === 2) {
+                if (!validateStep1()) {
+                    shakeElement(document.getElementById('step1-nav'));
+                    shakeElement(document.getElementById('dot2'));
+                    return; 
+                }
+            }
+            goToStep(targetStep);
+        }
+
+        function goToStep(screenIndex) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            currentStep = screenIndex;
+
+            if (screenIndex === 1 && dot1.classList.contains('complete')) {
+                appContainer.classList.add('step1-complete');
+            } else {
+                appContainer.classList.remove('step1-complete');
+            }
+            if (screenIndex === 2 && dot2.classList.contains('complete')) {
+                appContainer.classList.add('step2-complete');
+            } else {
+                appContainer.classList.remove('step2-complete');
+            }
+
+            if (screenIndex === 0) { document.getElementById('screen-splash').classList.add('active'); progressBar.style.display = 'none'; }
+            if (screenIndex === 1) { document.getElementById('screen-step1').classList.add('active'); progressBar.style.display = 'flex'; document.getElementById('dot1').classList.add('active'); document.getElementById('dot2').classList.remove('active'); }
+            if (screenIndex === 2) { document.getElementById('screen-step2').classList.add('active'); progressBar.style.display = 'flex'; document.getElementById('dot1').classList.remove('active'); document.getElementById('dot2').classList.add('active'); }
+        }
+
+        function validateStep1() {
+            const artist = document.getElementById('artist');
+            const track = document.getElementById('track');
+            const email = document.getElementById('email');
+            const dateInp = document.getElementById('datePicker');
+
+            let isValid = true;
+            let errorMessage = "Заполните все поля";
+
+            validateField(artist);
+            validateField(track);
+            validateField(email, 'email');
+            
+            if (!artist.value.trim()) { isValid = false; }
+            if (!track.value.trim()) { isValid = false; }
+            if (!selectedDateString) { dateInp.classList.add('input-error'); isValid = false; }
+
+            if (!email.value.trim()) {
+                isValid = false;
+            } else if (!isValidEmail(email.value.trim())) {
+                isValid = false;
+                errorMessage = "Неверный формат Email (пример: name@yandex.ru)";
+            }
+
+            if (!isValid) { showToast(errorMessage); return false; }
+            return true;
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        document.getElementById('screen-step1').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                e.preventDefault();
+                attemptStepChange(2);
+            }
+        });
+        document.getElementById('screen-step2').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                e.preventDefault();
+                submitForm();
+            }
+        });
+
         function submitForm() {
-            const rightsText = document.getElementById('rightsText').checked;
+            const rightsText  = document.getElementById('rightsText').checked;
             const rightsMusic = document.getElementById('rightsMusic').checked;
-            const agreeDist = document.getElementById('agreeDist').checked;
+            const agreeDist   = document.getElementById('agreeDist').checked;
 
             if (!rightsText || !rightsMusic || !agreeDist) {
-                alert("Пожалуйста, подтвердите все три пункта внизу формы.");
+                showToast("Подтвердите все три пункта внизу формы");
+                shakeElement(document.getElementById('checkboxes'));
                 return;
             }
 
-            // Собираем данные
             const data = {
                 artist: document.getElementById('artist').value.trim(),
                 track: document.getElementById('track').value.trim(),
                 email: document.getElementById('email').value.trim(),
-                date: document.getElementById('date').value,
+                date: selectedDateISO,
                 authorText: document.getElementById('authorText').value.trim(),
                 authorMusic: document.getElementById('authorMusic').value.trim(),
                 socials: document.getElementById('socials').value.trim(),
                 termsAgreed: true
             };
 
-            // Отправка в Telegram
-            if (tg) {
-                tg.sendData(JSON.stringify(data));
-                tg.close(); // Закрываем Mini App
-            } else {
-                // Для теста в браузере
-                alert("Данные собраны (тест в браузере):\n" + JSON.stringify(data, null, 2));
-            }
+            if (tg) { tg.sendData(JSON.stringify(data)); tg.close(); } 
+            else { alert("Данные собраны (тест в браузере):\n" + JSON.stringify(data, null, 2)); }
         }
     </script>
 </body>
